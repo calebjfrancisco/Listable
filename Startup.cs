@@ -2,16 +2,24 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.Webpack;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Repository;
 
 namespace Listable
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly IHostingEnvironment env;
+
+        public Startup(IConfigurationBuilder builder, IHostingEnvironment env)
         {
-            Configuration = configuration;
+            this.env = env;
+
+            Configuration = builder
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile("secrets.json", optional: true).Build();
         }
 
         public IConfiguration Configuration { get; }
@@ -21,14 +29,17 @@ namespace Listable
         {
             // Add framework services.
             services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            services.AddDbContext<ApplicationContext>(opt => 
+                opt.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
 
             // Simple example with dependency injection for a data provider.
             services.AddSingleton<Providers.IWeatherProvider, Providers.WeatherProviderFake>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app)
         {
             if (env.IsDevelopment())
             {
